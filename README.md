@@ -16,7 +16,7 @@ Simplicity was a deliberate choice. The owner needed zero training. If it requir
 ## Live URLs
 
 - Customer Registration: https://hair-court-salon-register.netlify.app
-- Owner Dashboard: https://hair-court-salon-owner-tool.netlify.app
+- Owner Dashboard: hair-court-salon-owner-tool.netlify.app
 
 ## Stack
 
