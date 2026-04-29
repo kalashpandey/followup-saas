@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FollowUp — Owner Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f; --surface: #13131a; --surface2: #1c1c26;
+    --border: #2a2a38; --accent: #6c63ff; --accent2: #ff6584;
+    --green: #00e5a0; --text: #f0f0f8; --muted: #6b6b80; --warn: #ffb347;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; padding: 0 0 60px; }
+
+  #expiry-screen { display: none; position: fixed; inset: 0; background: #080810; z-index: 9999; align-items: center; justify-content: center; flex-direction: column; text-align: center; padding: 32px; }
+  #expiry-screen.show { display: flex; }
+  .expiry-icon { font-size: 4rem; margin-bottom: 20px; }
+  .expiry-title { font-family: 'Syne', sans-serif; font-size: 1.6rem; font-weight: 800; color: #ff6584; margin-bottom: 12px; }
+  .expiry-sub { color: #6b6b80; font-size: 0.95rem; line-height: 1.7; max-width: 360px; margin-bottom: 32px; }
+  .expiry-cta { display: inline-flex; align-items: center; gap: 10px; background: #25d366; color: #000; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem; padding: 16px 32px; border-radius: 50px; text-decoration: none; }
+  .expiry-info { margin-top: 24px; background: #13131a; border: 1px solid #2a2a38; border-radius: 12px; padding: 14px 28px; color: #6b6b80; font-size: 0.82rem; }
+
+  #warning-banner { display: none; background: linear-gradient(135deg, #ff6584, #ffb347); color: #000; text-align: center; padding: 10px 20px; font-size: 0.82rem; font-weight: 700; font-family: 'Syne', sans-serif; }
+  #warning-banner.show { display: block; }
+  #warning-banner a { color: #000; }
+
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 18px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; flex-wrap: wrap; gap: 12px; }
+  .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.3rem; }
+  .logo span { color: var(--accent); }
+  .header-right { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .stats-bar { display: flex; gap: 24px; }
+  .stat { text-align: center; }
+  .stat-num { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.2rem; line-height: 1; }
+  .stat-label { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; }
+  .stat-num.warn { color: var(--warn); }
+  .stat-num.green { color: var(--green); }
+
+  .sync-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 0.8rem; padding: 8px 14px; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
+  .sync-btn:hover { color: var(--green); border-color: var(--green); }
+  .sync-btn.syncing { color: var(--accent); border-color: var(--accent); }
+  .spin { animation: spin 1s linear infinite; display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 28px 20px 0; display: grid; grid-template-columns: 340px 1fr; gap: 20px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .card-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .card-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.9rem; }
+  .badge { background: var(--accent); color: white; font-size: 0.7rem; font-weight: 600; padding: 3px 9px; border-radius: 20px; }
+  .badge.warn { background: var(--warn); color: #000; }
+
+  .form-body { padding: 18px; }
+  .field { margin-bottom: 13px; }
+  label { display: block; font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; font-weight: 600; }
+  input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 0.88rem; padding: 10px 13px; outline: none; transition: border-color 0.2s; }
+  input:focus { border-color: var(--accent); }
+  input::placeholder { color: var(--muted); }
+  .btn { width: 100%; padding: 12px; border-radius: 10px; border: none; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.88rem; cursor: pointer; transition: all 0.2s; }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { background: #7c74ff; }
+
+  .qr-section { padding: 18px; text-align: center; border-top: 1px solid var(--border); }
+  .qr-label { font-size: 0.75rem; color: var(--muted); margin-bottom: 10px; }
+  .qr-box { background: white; border-radius: 12px; padding: 10px; display: inline-block; margin-bottom: 10px; }
+  .qr-box img { width: 130px; height: 130px; display: block; }
+  .qr-hint { font-size: 0.73rem; color: var(--muted); line-height: 1.5; }
+  .btn-sm { padding: 8px 14px; font-size: 0.78rem; width: auto; margin-top: 10px; display: inline-block; }
+
+  .right-col { display: flex; flex-direction: column; gap: 20px; }
+
+  #new-customers-banner { background: rgba(0,229,160,0.08); border: 1px solid rgba(0,229,160,0.25); border-radius: 12px; padding: 13px 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .new-banner-text { font-size: 0.88rem; color: var(--green); font-weight: 600; }
+  .new-banner-btn { background: var(--green); color: #000; border: none; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.78rem; padding: 7px 14px; border-radius: 8px; cursor: pointer; white-space: nowrap; }
+
+  .followup-list { padding: 0; }
+  .followup-item { padding: 15px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; transition: background 0.15s; animation: slideIn 0.3s ease; }
+  @keyframes slideIn { from { opacity: 0; transform: translateX(8px); } to { opacity: 1; transform: translateX(0); } }
+  .followup-item:hover { background: var(--surface2); }
+  .followup-item:last-child { border-bottom: none; }
+  .customer-info { flex: 1; }
+  .customer-name { font-family: 'Syne', sans-serif; font-weight: 600; font-size: 0.9rem; margin-bottom: 3px; }
+  .customer-meta { font-size: 0.76rem; color: var(--muted); }
+  .days-badge { background: rgba(255,179,71,0.15); color: var(--warn); font-size: 0.72rem; font-weight: 600; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
+  .new-badge { background: rgba(0,229,160,0.15); color: var(--green); font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; margin-left: 6px; }
+  .copy-btn { background: #25d366; border: none; color: #000; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.76rem; padding: 8px 14px; border-radius: 8px; cursor: pointer; transition: all 0.2s; white-space: nowrap; display: flex; align-items: center; gap: 5px; }
+  .copy-btn:hover { background: #20bc5a; transform: scale(1.03); }
+  .copy-btn.copied { background: var(--green); }
+
+  .table-wrap { padding: 0; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th { font-size: 0.69rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); font-weight: 500; padding: 10px 16px; text-align: left; border-bottom: 1px solid var(--border); }
+  td { padding: 11px 16px; font-size: 0.84rem; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+  .status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; }
+  .status-dot.ok { background: var(--green); }
+  .status-dot.due { background: var(--warn); }
+  .status-dot.new-dot { background: var(--accent); }
+  .del-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 0.88rem; padding: 3px 6px; border-radius: 5px; transition: all 0.2s; }
+  .del-btn:hover { color: var(--accent2); }
+
+  .empty { padding: 36px 18px; text-align: center; color: var(--muted); }
+  .empty-icon { font-size: 2.2rem; margin-bottom: 10px; }
+  .empty p { font-size: 0.85rem; line-height: 1.6; }
+
+  .toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--green); color: #000; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.83rem; padding: 11px 22px; border-radius: 40px; transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1); z-index: 999; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 768px) {
+    main { grid-template-columns: 1fr; }
+    header { padding: 14px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="expiry-screen">
+  <div class="expiry-icon">🔒</div>
+  <div class="expiry-title">Subscription Expired</div>
+  <div class="expiry-sub">Aapka free trial khatam ho gaya. Renew karne ke liye contact karo.</div>
+  <a id="whatsapp-link" href="#" class="expiry-cta" target="_blank">📲 WhatsApp pe Renew Karo</a>
+  <div class="expiry-info" id="expiry-info"></div>
+</div>
+
+<div id="warning-banner"></div>
+
+<div id="app">
+  <header>
+    <div class="logo">Follow<span>Up</span> <span style="font-size:0.75rem;color:var(--muted);font-family:'DM Sans';font-weight:400;">— Hair Court Salon</span></div>
+    <div class="header-right">
+      <button class="sync-btn" id="syncBtn" onclick="syncFromSheets()">🔄 Sync New Customers</button>
+      <div class="stats-bar">
+        <div class="stat"><div class="stat-num" id="totalCount">0</div><div class="stat-label">Total</div></div>
+        <div class="stat"><div class="stat-num warn" id="dueCount">0</div><div class="stat-label">Follow Up</div></div>
+        <div class="stat"><div class="stat-num green" id="okCount">0</div><div class="stat-label">Active</div></div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div style="display:flex;flex-direction:column;gap:20px;">
+
+      <div class="card">
+        <div class="card-header"><span class="card-title">➕ Manually Add Karo</span></div>
+        <div class="form-body">
+          <div class="field"><label>Customer Name</label><input type="text" id="custName" placeholder="e.g. Rahul Sharma" /></div>
+          <div class="field"><label>WhatsApp Number</label><input type="text" id="custPhone" placeholder="e.g. 9876543210" /></div>
+          <div class="field"><label>Last Visit Date</label><input type="date" id="custDate" /></div>
+          <button class="btn btn-primary" onclick="addManual()">+ Add Customer</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><span class="card-title">📱 Customer QR Code</span></div>
+        <div class="qr-section">
+          <div class="qr-label">Print karo aur counter pe lagao</div>
+          <div class="qr-box"><img id="qrImg" src="" alt="QR Code" /></div>
+          <div class="qr-hint">Customer scan kare → Form bhare → Auto save ✅</div>
+          <button class="btn btn-primary btn-sm" onclick="downloadQR()">⬇️ QR Download Karo</button>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="right-col">
+
+      <div id="new-customers-banner">
+        <span class="new-banner-text">🎉 Naye customers register ho sakte hain!</span>
+        <button class="new-banner-btn" onclick="syncFromSheets()">Abhi Sync Karo</button>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">⚠️ Aaj Follow Up Karo</span>
+          <span class="badge warn" id="dueBadge">0</span>
+        </div>
+        <div class="followup-list" id="followupList">
+          <div class="empty"><div class="empty-icon">🎯</div><p>Koi follow-up due nahi abhi.</p></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Saare Customers</span>
+          <span class="badge" id="totalBadge">0</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Naam</th><th>Phone</th><th>Last Visit</th><th>Status</th><th></th></tr></thead>
+            <tbody id="customerTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const EXPIRY_DATE       = "2027-04-20";
+  const OWNER_WHATSAPP    = "918303074674";
+  const SHEET_CSV_URL     = "https://docs.google.com/spreadsheets/d/181Mbr3QQ05ZhURiYRAbls2elRl1jfJesPmcA7kJjy0U/gviz/tq?tqx=out:csv&sheet=Customers";
+  const REGISTER_PAGE_URL = "https://hair-court-salon-register.netlify.app";
+
+  function checkExpiry() {
+    const today = new Date(); today.setHours(0,0,0,0);
+    const expiry = new Date(EXPIRY_DATE); expiry.setHours(0,0,0,0);
+    const daysLeft = Math.ceil((expiry - today) / 86400000);
+    if (daysLeft <= 0) {
+      document.getElementById('app').style.display = 'none';
+      document.getElementById('expiry-screen').classList.add('show');
+      document.getElementById('expiry-info').textContent = `${expiry.toLocaleDateString('en-IN', {day:'numeric',month:'long',year:'numeric'})} ko expire hua`;
+      const msg = encodeURIComponent("Hi! Mera FollowUp subscription expire ho gaya. Renew karna hai.");
+      document.getElementById('whatsapp-link').href = `https://wa.me/${OWNER_WHATSAPP}?text=${msg}`;
+      return false;
+    }
+    if (daysLeft <= 5) {
+      const banner = document.getElementById('warning-banner');
+      banner.classList.add('show');
+      const msg = encodeURIComponent("Hi! Mera FollowUp subscription jald expire hoga. Renew karna hai.");
+      banner.innerHTML = `⚠️ Subscription <strong>${daysLeft} din</strong> mein expire hoga. <a href="https://wa.me/${OWNER_WHATSAPP}?text=${msg}" target="_blank">Renew karo →</a>`;
+    }
+    return true;
+  }
+
+  let customers = JSON.parse(localStorage.getItem('followup_hcs') || '[]');
+  let syncedIds = JSON.parse(localStorage.getItem('synced_hcs') || '[]');
+
+  function saveLocal() {
+    localStorage.setItem('followup_hcs', JSON.stringify(customers));
+    localStorage.setItem('synced_hcs', JSON.stringify(syncedIds));
+  }
+
+  function daysSince(d) { return Math.floor((new Date() - new Date(d)) / 86400000); }
+
+  function addManual() {
+    const name = document.getElementById('custName').value.trim();
+    const phone = document.getElementById('custPhone').value.trim();
+    const date = document.getElementById('custDate').value;
+    if (!name || !phone || !date) { alert('Naam, phone aur date daalo!'); return; }
+    const id = 'm_' + Date.now();
+    customers.push({ id, name, phone, date, source: 'manual' });
+    syncedIds.push(id);
+    saveLocal(); render();
+    ['custName','custPhone'].forEach(i => document.getElementById(i).value = '');
+    showToast('✅ Customer add ho gaya!');
+  }
+
+  async function syncFromSheets() {
+    const btn = document.getElementById('syncBtn');
+    btn.classList.add('syncing');
+    btn.innerHTML = '<span class="spin">🔄</span> Sync ho raha hai...';
+
+    try {
+      const res = await fetch(SHEET_CSV_URL + '&t=' + Date.now());
+      const text = await res.text();
+      const rows = text.trim().split('\n').slice(1);
+
+      let newCount = 0;
+      rows.forEach(row => {
+        const cols = row.split(',').map(c => c.replace(/^"|"$/g, '').trim());
+        if (cols.length < 2) return;
+        const [name, phone, business, date] = cols;
+        const id = 's_' + phone + '_' + (date || '');
+        if (!syncedIds.includes(id) && name && phone) {
+          customers.push({
+            id, name, phone,
+            date: date || new Date().toISOString().split('T')[0],
+            source: 'sheet'
+          });
+          syncedIds.push(id);
+          newCount++;
+        }
+      });
+
+      saveLocal(); render();
+      if (newCount > 0) showToast(`🎉 ${newCount} naye customer sync ho gaye!`);
+      else showToast('✅ Sab up to date hai!');
+
+    } catch(e) {
+      showToast('❌ Sync fail hua. Internet check karo.');
+    }
+
+    btn.classList.remove('syncing');
+    btn.innerHTML = '🔄 Sync New Customers';
+  }
+
+  function deleteCustomer(id) {
+    customers = customers.filter(c => c.id !== id);
+    syncedIds = syncedIds.filter(i => i !== id);
+    saveLocal(); render();
+  }
+
+  function generateMessage(c) {
+    return `Hi ${c.name}! 😊 Hair Court Salon mein aapka intezaar hai! Kaafi time ho gaya aapki last visit ko. Appointment book karne ke liye batao — special offer bhi hai aapke liye. 🙏✂️`;
+  }
+
+  function sendWhatsApp(id) {
+    const c = customers.find(x => x.id === id);
+    if (!c) return;
+    const msg = encodeURIComponent(generateMessage(c));
+    const phone = c.phone.length === 10 ? '91' + c.phone : c.phone;
+    window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+  }
+
+  function generateQR() {
+    document.getElementById('qrImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(REGISTER_PAGE_URL)}`;
+  }
+
+  function downloadQR() {
+    const a = document.createElement('a');
+    a.href = document.getElementById('qrImg').src;
+    a.download = 'hair-court-salon-qr.png';
+    a.click();
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  function render() {
+    const due = customers.filter(c => daysSince(c.date) >= 30);
+    const ok  = customers.filter(c => daysSince(c.date) < 30);
+    document.getElementById('totalCount').textContent = customers.length;
+    document.getElementById('dueCount').textContent = due.length;
+    document.getElementById('okCount').textContent = ok.length;
+    document.getElementById('dueBadge').textContent = due.length;
+    document.getElementById('totalBadge').textContent = customers.length;
+
+    document.getElementById('followupList').innerHTML = due.length === 0
+      ? `<div class="empty"><div class="empty-icon">🎉</div><p>Saare customers active hain!</p></div>`
+      : due.map(c => `
+          <div class="followup-item">
+            <div class="customer-info">
+              <div class="customer-name">${c.name}</div>
+              <div class="customer-meta">📱 ${c.phone}</div>
+            </div>
+            <span class="days-badge">${daysSince(c.date)}d pehle</span>
+            <button class="copy-btn" data-id="${c.id}" onclick="sendWhatsApp('${c.id}')">📲 WhatsApp</button>
+          </div>`).join('');
+
+    document.getElementById('customerTable').innerHTML = customers.length === 0
+      ? `<tr><td colspan="5"><div class="empty"><div class="empty-icon">👥</div><p>Koi customer nahi abhi.</p></div></td></tr>`
+      : customers.map(c => {
+          const d = daysSince(c.date);
+          const isNew = c.source === 'sheet' && d < 1;
+          return `<tr>
+            <td><strong>${c.name}</strong>${isNew ? '<span class="new-badge">NEW</span>' : ''}</td>
+            <td>${c.phone}</td>
+            <td>${c.date}</td>
+            <td><span class="status-dot ${d>=30?'due':isNew?'new-dot':'ok'}"></span>${d>=30?'Follow Up':isNew?'Abhi Joined':'Active'}</td>
+            <td><button class="del-btn" onclick="deleteCustomer('${c.id}')">✕</button></td>
+          </tr>`;
+        }).join('');
+  }
+
+  document.getElementById('custDate').valueAsDate = new Date();
+
+  if (checkExpiry()) {
+    generateQR();
+    render();
+    setTimeout(syncFromSheets, 2000);
+  }
+</script>
+</body>
+</html>
